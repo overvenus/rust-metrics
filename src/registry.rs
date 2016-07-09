@@ -9,7 +9,7 @@
 #![allow(missing_docs)]
 
 use std::collections::HashMap;
-use metrics::Metric;
+use metrics::{Metric, MetricWithOptionLabels};
 use reporter::Reporter;
 
 // TODO break out any notion of metrics. Instead we should have a notion of a collector.
@@ -19,14 +19,12 @@ pub trait Registry<'a>: Send + Sync {
     fn get(&'a self, name: &'a str) -> &'a Metric;
     fn get_metrics_names(&self) -> Vec<&str>;
     fn insert(&mut self, name: &'a str, metric: Metric);
-    fn labels(&self) -> HashMap<String, String>;
 }
 
 #[derive(Default)]
 pub struct StdRegistry<'a> {
-    metrics: HashMap<&'a str, Metric>,
+    metrics: HashMap<&'a str, MetricWithOptionLabels>,
     reporter: HashMap<&'a str, Box<Reporter>>,
-    labels: HashMap<String, String>,
 }
 
 // Specific stuff for registry goes here
@@ -41,32 +39,23 @@ impl<'a> Registry<'a> for StdRegistry<'a> {
     }
 
     fn insert(&mut self, name: &'a str, metric: Metric) {
+        self.metrics.insert(name, MetricWithOptionLabels(metric));
+    }
+
+    fn insert_labeled_metrics(&mut self, name: &'a str, metric: MetricWithOptionLabels) {
         self.metrics.insert(name, metric);
     }
 
     fn get_metrics_names(&self) -> Vec<&str> {
         self.metrics.keys().cloned().collect()
     }
-
-    fn labels(&self) -> HashMap<String, String> {
-        self.labels.clone()
-    }
 }
 
 impl<'a> StdRegistry<'a> {
-    pub fn new_with_labels(labels: HashMap<String, String>) -> Self {
-        StdRegistry {
-            metrics: HashMap::new(),
-            reporter: HashMap::new(),
-            labels: labels,
-        }
-    }
-
     pub fn new() -> Self {
         StdRegistry {
             metrics: HashMap::new(),
             reporter: HashMap::new(),
-            labels: HashMap::new(),
         }
     }
 }
@@ -77,8 +66,6 @@ mod test {
     use registry::{Registry, StdRegistry};
     use histogram::Histogram;
 
-
-    // TODO add labels tests
 
     #[test]
     fn meter() {

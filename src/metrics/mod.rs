@@ -7,6 +7,7 @@
 //! Metrics
 
 use std::sync::Arc;
+use std::collections::HashMap;
 
 mod counter;
 mod gauge;
@@ -18,6 +19,10 @@ pub use self::meter::{Meter, MeterSnapshot, StdMeter};
 
 /// a Metric
 use histogram::Histogram;
+
+pub enum MetricWithOptionLabels {
+    Metric(Option<HashMap<String, String>>),
+}
 
 #[allow(missing_docs)]
 pub enum Metric {
